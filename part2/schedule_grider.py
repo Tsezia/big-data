@@ -6,7 +6,7 @@ from transliterate import translit
 
 class ScheduleGrider():
 
-    def __init__(self, weekly_schedules):
+    def __init__(self, weekly_schedules=None):
 
         self.date_format = "%Y.%m.%d"
         self.weekly_schedules = weekly_schedules
@@ -67,5 +67,40 @@ class ScheduleGrider():
                     return updated_weekly_grids
         
         return updated_weekly_grids
+    
+
+    def get_free_slot_by_compared_scheduling(self, group_weekly_grids, lecturer_weekly_grids, auditorium_weekly_grids):
+
+        synchronized_auditorium_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, auditorium_weekly_grids)
+        lecturer_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, lecturer_weekly_grids)
+        merged_weekly_grids = {}
+        for key in group_weekly_grids.keys():
+
+            auditorium_weekly_grid = np.array(synchronized_auditorium_weekly_grids[key])
+            group_weekly_grid = np.array(group_weekly_grids[key])
+            lecturer_weekly_grid = np.array(lecturer_weekly_grids[key])
+
+            merged_weekly_grid = np.where(group_weekly_grid == 0, group_weekly_grid, auditorium_weekly_grid)
+            merged_weekly_grid = np.where(lecturer_weekly_grid == 0, lecturer_weekly_grid, merged_weekly_grid)
+
+            # Где то тут фильтры по окнам и количеству пар
+
+            merged_weekly_grids[key] = merged_weekly_grid.tolist()
+        
+        return merged_weekly_grids
+        
+        
+    def get_synchonized_weekly_grids(self, example_weekly_grids, processed_weekly_grids):
+        synchronized_weekly_grids = {}
+        for key in example_weekly_grids.keys():
+            synchronized_weekly_grids[key] = processed_weekly_grids[key]
+        return synchronized_weekly_grids
+    
+
+    def filter_weekly_grid_by_max_number_lessons(weekly_grid, max_number):
+        for i in range(len(weekly_grid)):
+            for j in range(len(wekkly_grid[i]))
+                if weekly_grid == 1:
+                    
 
 
