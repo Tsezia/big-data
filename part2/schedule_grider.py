@@ -73,19 +73,7 @@ class ScheduleGrider():
 
         synchronized_auditorium_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, auditorium_weekly_grids)
         lecturer_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, lecturer_weekly_grids)
-        merged_weekly_grids = {}
-        for key in group_weekly_grids.keys():
-
-            auditorium_weekly_grid = np.array(synchronized_auditorium_weekly_grids[key])
-            group_weekly_grid = np.array(group_weekly_grids[key])
-            lecturer_weekly_grid = np.array(lecturer_weekly_grids[key])
-
-            merged_weekly_grid = np.where(group_weekly_grid == 0, group_weekly_grid, auditorium_weekly_grid)
-            merged_weekly_grid = np.where(lecturer_weekly_grid == 0, lecturer_weekly_grid, merged_weekly_grid)
-
-            # Где то тут фильтры по окнам и количеству пар
-
-            merged_weekly_grids[key] = merged_weekly_grid.tolist()
+        merged_weekly_grids = self.merge_weekly_grids([synchronized_auditorium_weekly_grids, group_weekly_grids, lecturer_weekly_grids])
         
         return merged_weekly_grids
         
@@ -97,10 +85,46 @@ class ScheduleGrider():
         return synchronized_weekly_grids
     
 
-    def filter_weekly_grid_by_max_number_lessons(weekly_grid, max_number):
-        for i in range(len(weekly_grid)):
-            for j in range(len(wekkly_grid[i]))
-                if weekly_grid == 1:
-                    
+    def merge_weekly_grids(self, weekly_grids_list):
+        merged_weekly_grids = {}
+        start_weekly_grids = weekly_grids_list[0]
+        for key in start_weekly_grids.keys():
+            result = np.array(start_weekly_grids[key])
+            for weekly_grids in weekly_grids_list[1:]:
+                weekly_grid = np.array(weekly_grids[key])
+                result = np.where(weekly_grid == 0, weekly_grid, result)
+            merged_weekly_grids[key] = result.tolist()
+        return merged_weekly_grids
 
 
+    def filter_weekly_grids_by_max_number_lessons(self, weekly_grids, max_number):
+        filtered_weekly_grids = weekly_grids
+        for key in weekly_grids.keys():
+            for i in range(len(weekly_grids[key])):
+                num_zeros = np.count_nonzero(np.array(filtered_weekly_grids[key][i]) == 0.0)
+                if num_zeros >= max_number:
+                    filtered_weekly_grids[key][i] = np.zeros(6)
+        return filtered_weekly_grids
+    
+
+    def filter_weekly_grids_by_existing_windows(self, weekly_grids):
+        filtered_weekly_grids = weekly_grids
+        for key in weekly_grids.keys():
+            for i in range(len(weekly_grids[key])):
+
+                arr = np.array(filtered_weekly_grids[key][i])
+
+                first_zero_index = np.where(arr == 0.0)[0]
+                last_zero_index = np.where(arr == 0.0)[0]
+
+                needless_indexes = []
+                if first_zero_index.size > 0 and first_zero_index[0] > 1:
+                    needless_indexes.extend(list(range(0, first_zero_index[0] - 1)))
+                if last_zero_index.size > 0 and last_zero_index[-1] < 4:
+                    needless_indexes.extend(list(range(last_zero_index[-1] + 2, 6)))
+
+                for needless_index in needless_indexes:
+                    filtered_weekly_grids[key][i][needless_index] = 0.0
+
+        return filtered_weekly_grids
+    
