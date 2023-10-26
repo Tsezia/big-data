@@ -5,19 +5,19 @@ groups_weekly_grids = []
 lecturers_weekly_grids = []
 
 
-with open("part2/output/auditoriums_weekly_grids.txt", "r", encoding="utf16") as file:
+with open("part2/output/auditoriums_weekly_grids.txt", "r", encoding="utf8") as file:
     lines = file.readlines()
     for line in lines:
         auditoriums_weekly_grids.append(json.loads(line))
 
 
-with open("part2/output/groups_weekly_grids.txt", "r", encoding="utf16") as file:
+with open("part2/output/groups_weekly_grids.txt", "r", encoding="utf8") as file:
     lines = file.readlines()
     for line in lines:
         groups_weekly_grids.append(json.loads(line))
 
 
-with open("part2/output/lecturers_weekly_grids.txt", "r", encoding="utf16") as file:
+with open("part2/output/lecturers_weekly_grids.txt", "r", encoding="utf8") as file:
     lines = file.readlines()
     for line in lines:
        lecturers_weekly_grids.append(json.loads(line))
@@ -34,7 +34,7 @@ for i in range(len(lecturers_weekly_grids)):
 with open('part2/output/compared_weekly_grids.txt', 'w', encoding="utf8") as file:
     file.write(result_line)
 
-print("Completed")
+print("GRIDS COMPARED SUCCESSFUL")
 
 
 
