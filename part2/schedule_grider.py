@@ -76,7 +76,6 @@ class ScheduleGrider():
         auditorium_name = auditorium_weekly_grids["auditorium_name"]
 
         synchronized_auditorium_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, auditorium_weekly_grids)
-        lecturer_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, lecturer_weekly_grids)
         merged_weekly_grids = self.merge_weekly_grids([synchronized_auditorium_weekly_grids, group_weekly_grids, lecturer_weekly_grids])
 
         free_slot_description = ""
