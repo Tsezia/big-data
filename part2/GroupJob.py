@@ -78,10 +78,12 @@ class GroupJob(MRJob):
 
             weekly_grids = scheduleGrider.filter_weekly_grids_by_max_number_lessons(weekly_grids, 4) # Фильтр по максимальному количеству пар в день
             weekly_grids = scheduleGrider.filter_weekly_grids_by_existing_windows(weekly_grids) # Фильтр, не позволяющий переносимой паре образовать окно в расписании
-            
+
             weekly_grids_list.append(scheduleGrider.zeroing_slots_before_start_lesson(weekly_grids, lesson["date"], lesson["beginLesson"]))
         
         merged_weekly_grids = scheduleGrider.merge_weekly_grids(weekly_grids_list)
+        
+        merged_weekly_grids["lesson"] = lesson
 
         yield lesson, merged_weekly_grids
 
