@@ -46,11 +46,11 @@ class GroupJob(MRJob):
 
         start_time = self.return_week_monday_by_date(lesson["date"])
 
-        weekly_schedules = {}
+        weekly_schedules_list = [{} for _ in range(len(groups_list_ids))]
 
         while start_time != datetime(2024,1,1):
-            common_weekly_schedule = []
             for i in range(len(groups_list_ids)):
+                result_group_weekly_schedule = []
                 link = f"https://rasp.omgtu.ru/api/schedule/group/{groups_list_ids[i]}?start={start_time.strftime('%Y.%m.%d')}&finish={(start_time + timedelta(days=5)).strftime('%Y.%m.%d')}&lng=1"
                 response = requests.get(link, verify=True)
                 if response.status_code == 200:
@@ -58,21 +58,34 @@ class GroupJob(MRJob):
                     if "/" in lesson["groups"][i]:
                         for group_lesson in group_weekly_schedule:
                             if group_lesson["subGroup"] == None or group_lesson["subGroup"] == lesson["groups"][i]:
-                                common_weekly_schedule.append(group_lesson)
+                                result_group_weekly_schedule.append(group_lesson)
                     else:
-                        common_weekly_schedule.extend(group_weekly_schedule)
+                        result_group_weekly_schedule.extend(group_weekly_schedule)
+                    
+                    weekly_schedules_list[i][f"{start_time.strftime('%Y.%m.%d')} - {(start_time + timedelta(days=5)).strftime('%Y.%m.%d')}"] = result_group_weekly_schedule
+                    
                 else:
                     print("Не удалось получить данные о группе c id " + groups_list_ids[i])
                     sys.exit()
 
-            weekly_schedules[f"{start_time.strftime('%Y.%m.%d')} - {(start_time + timedelta(days=5)).strftime('%Y.%m.%d')}"] = common_weekly_schedule
             start_time += timedelta(days=7)
-            
-        scheduleGrider = ScheduleGrider(weekly_schedules)
-        weekly_grids = scheduleGrider.transform_weekly_schedules_to_weekly_grids()
-        weekly_grids = scheduleGrider.zeroing_slots_before_start_lesson(weekly_grids, lesson["date"], lesson["beginLesson"])
+
+        weekly_grids_list = []
         
-        yield lesson, weekly_grids
+        for weekly_schedules in weekly_schedules_list:
+            scheduleGrider = ScheduleGrider(weekly_schedules)
+            weekly_grids = scheduleGrider.transform_weekly_schedules_to_weekly_grids()
+
+            weekly_grids = scheduleGrider.filter_weekly_grids_by_max_number_lessons(weekly_grids, 4) # Фильтр по максимальному количеству пар в день
+            weekly_grids = scheduleGrider.filter_weekly_grids_by_existing_windows(weekly_grids) # Фильтр, не позволяющий переносимой паре образовать окно в расписании
+
+            weekly_grids_list.append(scheduleGrider.zeroing_slots_before_start_lesson(weekly_grids, lesson["date"], lesson["beginLesson"]))
+        
+        merged_weekly_grids = scheduleGrider.merge_weekly_grids(weekly_grids_list)
+        
+        merged_weekly_grids["lesson"] = lesson
+
+        yield lesson, merged_weekly_grids
 
 
 

@@ -6,7 +6,7 @@ from transliterate import translit
 
 class ScheduleGrider():
 
-    def __init__(self, weekly_schedules):
+    def __init__(self, weekly_schedules=None):
 
         self.date_format = "%Y.%m.%d"
         self.weekly_schedules = weekly_schedules
@@ -59,7 +59,6 @@ class ScheduleGrider():
 
         current_week_key = f"{(week_monday).strftime('%Y.%m.%d')} - {(week_monday + timedelta(days=5)).strftime('%Y.%m.%d')}"
 
-        flag = False
         for i in range(len(updated_weekly_grids[current_week_key])):
             for j in range(len(updated_weekly_grids[current_week_key][i])):
                 updated_weekly_grids[current_week_key][i][j] = 0.0
@@ -67,5 +66,98 @@ class ScheduleGrider():
                     return updated_weekly_grids
         
         return updated_weekly_grids
+    
+
+    def get_free_slot_description_by_compared_scheduling(self, group_weekly_grids, lecturer_weekly_grids, auditorium_weekly_grids):
+
+        time_indexes = {0: "08:00", 1: "9:40", 2: "11:35", 3: "13:15", 4: "15:10", 5: "16:50"}
+
+        lesson_data = group_weekly_grids["lesson"]
+        auditorium_name = auditorium_weekly_grids["auditorium_name"]
+
+        synchronized_auditorium_weekly_grids = self.get_synchonized_weekly_grids(group_weekly_grids, auditorium_weekly_grids)
+        merged_weekly_grids = self.merge_weekly_grids([synchronized_auditorium_weekly_grids, group_weekly_grids, lecturer_weekly_grids])
+
+        free_slot_description = ""
+
+        for key in merged_weekly_grids.keys():
+            for i in range(len(merged_weekly_grids[key])):
+                for j in range(len(merged_weekly_grids[key][i])):
+                    if merged_weekly_grids[key][i][j] == 1.0:
+                        free_slot_monday = datetime.strptime(key.split(" - ")[0], "%Y.%m.%d")
+                        free_slot_day = free_slot_monday + timedelta(days=i)
+                        free_slot_start_lesson_time = datetime.strptime(time_indexes[j],  "%H:%M").time()
+                        free_slot_end_lesson_time = (datetime.combine(datetime.today(), free_slot_start_lesson_time) + timedelta(hours=1, minutes=30)).time()
+
+                        free_slot_description = ""
+                        free_slot_description += "------------------------------------------------------------\n"
+                        free_slot_description += "ИНФОРМАЦИЯ О ПЕРЕНОСИМОЙ ПАРЕ \n"
+                        free_slot_description += f"Название дисциплины: {lesson_data['discipline']}\n"
+                        free_slot_description += f"Задействованные группы: {', '.join(lesson_data['groups'])}\n"
+                        free_slot_description += f"Преподаватель: {lesson_data['lecturer']}\n"
+                        free_slot_description += f"Дата и начало проведения пары: {lesson_data['date']} {lesson_data['beginLesson']}\n"
+                        free_slot_description += "\nСВОБОДНЫЙ СЛОТ ДЛЯ ПРОВЕДЕНИЯ ПАРЫ \n"
+                        free_slot_description += f"Аудитория, в которой можно провести пару: {auditorium_name}\n"
+                        free_slot_description += f"Дата проведения пары: {free_slot_day.strftime('%Y.%m.%d')}\n"
+                        free_slot_description += f"Время проведения пары: {free_slot_start_lesson_time.strftime('%H:%M')} - {free_slot_end_lesson_time.strftime('%H:%M')}\n"
+                        free_slot_description += "------------------------------------------------------------\n \n"
+
+                        return free_slot_description
+                        
+
+        
+        return free_slot_description
+        
+        
+    def get_synchonized_weekly_grids(self, example_weekly_grids, processed_weekly_grids):
+        synchronized_weekly_grids = {}
+        for key in example_weekly_grids.keys():
+            if key not in ["lesson", "auditorium_name"]:
+                synchronized_weekly_grids[key] = processed_weekly_grids[key]
+        return synchronized_weekly_grids
+    
+
+    def merge_weekly_grids(self, weekly_grids_list):
+        merged_weekly_grids = {}
+        start_weekly_grids = weekly_grids_list[0]
+        for key in start_weekly_grids.keys():
+            if key not in ["lesson", "auditorium_name"]:
+                result = np.array(start_weekly_grids[key])
+                for weekly_grids in weekly_grids_list[1:]:
+                    weekly_grid = np.array(weekly_grids[key])
+                    result = np.where(weekly_grid == 0, weekly_grid, result)
+                merged_weekly_grids[key] = result.tolist()
+        return merged_weekly_grids
 
 
+    def filter_weekly_grids_by_max_number_lessons(self, weekly_grids, max_number):
+        filtered_weekly_grids = weekly_grids
+        for key in weekly_grids.keys():
+            for i in range(len(weekly_grids[key])):
+                num_zeros = np.count_nonzero(np.array(filtered_weekly_grids[key][i]) == 0.0)
+                if num_zeros >= max_number:
+                    filtered_weekly_grids[key][i] = np.zeros(6)
+        return filtered_weekly_grids
+    
+
+    def filter_weekly_grids_by_existing_windows(self, weekly_grids):
+        filtered_weekly_grids = weekly_grids
+        for key in weekly_grids.keys():
+            for i in range(len(weekly_grids[key])):
+
+                arr = np.array(filtered_weekly_grids[key][i])
+
+                first_zero_index = np.where(arr == 0.0)[0]
+                last_zero_index = np.where(arr == 0.0)[0]
+
+                needless_indexes = []
+                if first_zero_index.size > 0 and first_zero_index[0] > 1:
+                    needless_indexes.extend(list(range(0, first_zero_index[0] - 1)))
+                if last_zero_index.size > 0 and last_zero_index[-1] < 4:
+                    needless_indexes.extend(list(range(last_zero_index[-1] + 2, 6)))
+
+                for needless_index in needless_indexes:
+                    filtered_weekly_grids[key][i][needless_index] = 0.0
+
+        return filtered_weekly_grids
+    

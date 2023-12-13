@@ -50,6 +50,8 @@ class Rescheduling(MRJob):
         
         scheduleGrider = ScheduleGrider(weekly_schedules)
         weekly_grids = scheduleGrider.transform_weekly_schedules_to_weekly_grids()
+        
+        weekly_grids["auditorium_name"] = auditorium_name
 
         yield auditorium_name, weekly_grids
     

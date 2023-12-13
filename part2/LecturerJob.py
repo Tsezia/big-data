@@ -18,13 +18,17 @@ class LecturerJob(MRJob):
 
     def steps(self):
         return [
+            MRStep(mapper=self.lesson_json_to_lecturer_name_mapper),
             MRStep(mapper=self.lecturer_name_to_id_mapper), 
             MRStep(mapper=self.lecturer_id_to_weekly_schedule_mapper)
         ]
 
-    def lecturer_name_to_id_mapper(self, _, data):
+    def lesson_json_to_lecturer_name_mapper(self, _, line):
+        lesson = json.loads(line)
+        yield lesson, lesson["lecturer"]
 
-        lecturer = json.loads(data)["lecturer"]
+    def lecturer_name_to_id_mapper(self, lesson, lecturer):
+
         link = f'https://rasp.omgtu.ru/api/search?term={quote(lecturer)}&type=person'
         response = requests.get(link, verify=True)
         if response.status_code == 200:
@@ -33,11 +37,11 @@ class LecturerJob(MRJob):
         else:
             print("Не удалось получить данные о преподавателе " + lecturer)
             sys.exit()
-        yield lecturer, lecturer_id
+        yield lesson, lecturer_id
 
+    def lecturer_id_to_weekly_schedule_mapper(self, lesson, lecturer_id):
 
-    def lecturer_id_to_weekly_schedule_mapper(self, lecturer_name, lecturer_id):
-        start_time = datetime(2023,9,4)
+        start_time = self.return_week_monday_by_date(lesson["date"])
         weekly_schedules = {}
 
         while start_time != datetime(2024,1,1):
@@ -54,9 +58,16 @@ class LecturerJob(MRJob):
         
         scheduleGrider = ScheduleGrider(weekly_schedules)
         weekly_grids = scheduleGrider.transform_weekly_schedules_to_weekly_grids()
+        weekly_grids = scheduleGrider.zeroing_slots_before_start_lesson(weekly_grids, lesson["date"], lesson["beginLesson"])
 
-        yield lecturer_name, weekly_grids
+        yield lesson, weekly_grids
     
+    def return_week_monday_by_date(self, lesson_day_str):
+        lesson_day = datetime.strptime(lesson_day_str,  "%Y.%m.%d")
+        lesson_weekday = lesson_day.weekday()
+        week_monday = lesson_day - timedelta(days=lesson_weekday)
+
+        return week_monday
 
 if __name__ == '__main__':
     LecturerJob.run()
