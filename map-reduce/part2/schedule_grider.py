@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.5
 import numpy as np
 import requests
 import json
@@ -57,7 +58,7 @@ class ScheduleGrider():
         lesson_day = datetime.strptime(lesson_day_str,  "%Y.%m.%d")
         week_monday = lesson_day - timedelta(days=lesson_day.weekday())
 
-        current_week_key = f"{(week_monday).strftime('%Y.%m.%d')} - {(week_monday + timedelta(days=5)).strftime('%Y.%m.%d')}"
+        current_week_key = "{} - {}".format((week_monday).strftime('%Y.%m.%d'), (week_monday + timedelta(days=5)).strftime('%Y.%m.%d'))
 
         for i in range(len(updated_weekly_grids[current_week_key])):
             for j in range(len(updated_weekly_grids[current_week_key][i])):
@@ -92,14 +93,14 @@ class ScheduleGrider():
                         free_slot_description = ""
                         free_slot_description += "------------------------------------------------------------\n"
                         free_slot_description += "ИНФОРМАЦИЯ О ПЕРЕНОСИМОЙ ПАРЕ \n"
-                        free_slot_description += f"Название дисциплины: {lesson_data['discipline']}\n"
-                        free_slot_description += f"Задействованные группы: {', '.join(lesson_data['groups'])}\n"
-                        free_slot_description += f"Преподаватель: {lesson_data['lecturer']}\n"
-                        free_slot_description += f"Дата и начало проведения пары: {lesson_data['date']} {lesson_data['beginLesson']}\n"
-                        free_slot_description += "\nСВОБОДНЫЙ СЛОТ ДЛЯ ПРОВЕДЕНИЯ ПАРЫ \n"
-                        free_slot_description += f"Аудитория, в которой можно провести пару: {auditorium_name}\n"
-                        free_slot_description += f"Дата проведения пары: {free_slot_day.strftime('%Y.%m.%d')}\n"
-                        free_slot_description += f"Время проведения пары: {free_slot_start_lesson_time.strftime('%H:%M')} - {free_slot_end_lesson_time.strftime('%H:%M')}\n"
+                        free_slot_description += "Название дисциплины: {}\n".format(lesson_data['discipline'])
+                        free_slot_description += "Задействованные группы: {}\n".format(', '.join(lesson_data['groups']))
+                        free_slot_description += "Преподаватель: {}\n".format(lesson_data['lecturer'])
+                        free_slot_description += "Дата и начало проведения пары: {} {}\n".format(lesson_data['date'], lesson_data['beginLesson'])
+                        free_slot_description += "\nСВОБОДНЫЙ СЛОТ ДЛЯ ПРОВЕДЕНИЯ ПАРЫ\n"
+                        free_slot_description += "Аудитория, в которой можно провести пару: {}\n".format(auditorium_name)
+                        free_slot_description += "Дата проведения пары: {}\n".format(free_slot_day.strftime('%Y.%m.%d'))
+                        free_slot_description += "Время проведения пары: {} - {}\n".format(free_slot_start_lesson_time.strftime('%H:%M'), free_slot_end_lesson_time.strftime('%H:%M'))
                         free_slot_description += "------------------------------------------------------------\n \n"
 
                         return free_slot_description
